@@ -1,5 +1,4 @@
 from typing import List
-import logging
 import numpy as np
 import torch
 import torchvision
@@ -11,14 +10,25 @@ from resnet import ResNet18, BasicBlock
 
 
 def largest_similarity(similarity_matrix: List[torch.Tensor]):
-    x, y = similarity_matrix.shape
-    largest_cosine_similarity, i_largest, j_largest = 0, 0, 0
+    """
+    Values are mirrored accross the diagonal line and the diagonal line is
+    ignored as it is the result of comparing the same image with itself.
+    This function returns the largest cosine similarity of the found above the
+    diagonal line.
+    """
+    x, y = similarity_matrix.shape  # Extract rows and columns
+    largest, i_largest, j_largest = (
+        0,
+        0,
+        0,
+    )  # Initialize return variables
     for i in range(0, x - 1):
         for j in range(i + 1, y):
-            if similarity_matrix[i][j] > largest_cosine_similarity:
-                largest_cosine_similarity = similarity_matrix[i][j]
+            current = similarity_matrix[i][j]
+            if current > largest:
+                largest = current
                 i_largest, j_largest = i, j
-    return largest_cosine_similarity, i_largest, j_largest
+    return largest, i_largest, j_largest
 
 
 def imshow(img):
@@ -28,11 +38,12 @@ def imshow(img):
     plt.show()
 
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
 if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
     layers = [2, 2, 2, 2]
     logging.info("Creating ResNet18 model with layers %s", str(layers))
