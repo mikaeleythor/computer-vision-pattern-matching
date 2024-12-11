@@ -1,15 +1,25 @@
 from typing import List
 import logging
+import numpy as np
 import torch
 import torchvision
 from torchvision.models import ResNet18_Weights
 from torchvision import transforms
+from sklearn.metrics.pairwise import cosine_similarity
 from matplotlib import pyplot as plt
-import numpy as np
 from resnet import ResNet18, BasicBlock
 
-def knn(k:int, tensors:List[torch.Tensor]):
-    pass
+
+def largest_similarity(similarity_matrix: List[torch.Tensor]):
+    x, y = similarity_matrix.shape
+    largest_cosine_similarity, i_largest, j_largest = 0, 0, 0
+    for i in range(0, x - 1):
+        for j in range(i + 1, y):
+            if similarity_matrix[i][j] > largest_cosine_similarity:
+                largest_cosine_similarity = similarity_matrix[i][j]
+                i_largest, j_largest = i, j
+    return largest_cosine_similarity, i_largest, j_largest
+
 
 def imshow(img):
     img = img / 2 + 0.5  # unnormalize
@@ -43,14 +53,6 @@ if __name__ == "__main__":
 
     BATCH_SIZE = 4
 
-    # logging.info("Downloading training dataset")
-    # trainset = torchvision.datasets.CIFAR10(
-    #     root="./data", train=True, download=True, transform=transform
-    # )
-    # trainloader = torch.utils.data.DataLoader(
-    #     trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2
-    # )
-    #
     logging.info("Downloading testing dataset")
     testset = torchvision.datasets.CIFAR10(
         root="./data", train=False, download=True, transform=transform
@@ -59,13 +61,28 @@ if __name__ == "__main__":
         testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2
     )
 
-    logging.info("Iterating through testing dataset")
-    dataiter = iter(testloader)
-    images, labels = next(dataiter)
+    for data in iter(testloader):
+        logging.info("Iterating through testing dataset")
+        images, labels = data
 
-    logging.info("Running network on batch of images")
-    outputs = net(images)
-    print(outputs)
+        logging.info("Running network on batch of images")
+        outputs = net(images)
+
+        logging.info("Calculating cosine similarity between images")
+        similarity_matrix = cosine_similarity([t.detach().numpy() for t in outputs])
+        largest_cosine_similarity, i_largest, j_largest = largest_similarity(
+            similarity_matrix
+        )
+
+        # TODO: Compare with ground truth, calculate error
+
+        logging.info(
+            "Largest cosine similarity: %.4f between tensors %d and %d",
+            largest_cosine_similarity,
+            i_largest,
+            j_largest,
+        )
+        print(labels)
 
     logging.info("Plotting images from testing dataset")
     imshow(torchvision.utils.make_grid(images))
