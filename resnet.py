@@ -1,8 +1,8 @@
+"""This module contains a port of the PyTorch ResNet18 model"""
+
 from typing import Optional, Callable, List, Type, Union
 import torch
 from torch import nn, Tensor
-from torchvision.models import ResNet18_Weights
-import logging
 
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -138,7 +138,6 @@ class ResNet18(nn.Module):
         self,
         block: Type[Union[BasicBlock, Bottleneck]],
         layers: List[int],
-        num_classes: int = 1000,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
@@ -180,7 +179,7 @@ class ResNet18(nn.Module):
             block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2]
         )
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        # self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -261,23 +260,9 @@ class ResNet18(nn.Module):
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
+        # x = self.fc(x)
 
         return x
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-    layers = [2,2,2,2]
-    logging.info("Creating ResNet18 model with layers %s", str(layers))
-    model = ResNet18(BasicBlock, layers)
-
-    logging.info("Fetching IMAGENET1K_V1 weights")
-    state_dict = ResNet18_Weights.IMAGENET1K_V1.get_state_dict(check_hash=True)
-
-    logging.info("Loading IMAGENET1K_V1 weights to ResNet18 model")
-    model.load_state_dict(state_dict)
