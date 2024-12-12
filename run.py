@@ -1,6 +1,5 @@
 import logging
 import cv2
-
 import torch
 from torchvision.models import ResNet18_Weights
 from torchvision import transforms
