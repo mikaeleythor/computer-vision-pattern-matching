@@ -1,10 +1,10 @@
 import logging
 import cv2
 import torch
-from torchvision.models import ResNet18_Weights
+from torchvision.models import ResNet50_Weights
 from torchvision import transforms
 from ultralytics import YOLO
-from resnet import ResNet18, BasicBlock
+from resnet import resnet18, resnet50, resnet101_32x8d
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import largest_similarity, imshow
 
@@ -92,14 +92,13 @@ def annotate_frame_fps(fps):
     )
 
 
-def create_siamese_network(layers) -> torch.nn.Module:
+def create_siamese_network() -> torch.nn.Module:
     """Returns an instance of ResNet18 with pretrained weights"""
-    layers = [2, 2, 2, 2]
-    logging.info("Creating ResNet18 model with layers %s", str(layers))
-    net = ResNet18(BasicBlock, layers)
+    # logging.info("Creating ResNet18 model with layers %s", str(layers))
+    net = resnet50()
 
     logging.info("Fetching IMAGENET1K_V1 weights")
-    imagenet_state_dict = ResNet18_Weights.IMAGENET1K_V1.get_state_dict(check_hash=True)
+    imagenet_state_dict = ResNet50_Weights.IMAGENET1K_V2.get_state_dict(check_hash=True)
 
     logging.info("Filtering FC layer weights from IMAGENET1K_V1 weights")
     state_dict = {k: v for k, v in imagenet_state_dict.items() if "fc" not in k}
@@ -126,6 +125,10 @@ def get_detections(results):
     return detections
 
 
+def process_state_dict(state_dict):
+    return {k: v for k, v in state_dict.items() if "fc" not in k}
+
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -133,7 +136,9 @@ logging.basicConfig(
 
 if __name__ == "__main__":
 
-    siamese = create_siamese_network([2, 2, 2, 2])
+    siamese = create_siamese_network()
+    checkpoint = torch.load("models/resnet50_model_10_epoch.pth", map_location="cpu")
+    siamese.load_state_dict(process_state_dict(checkpoint))
     yolo = YOLO("models/test_best.pt")  # Use your trained model
 
     cap = cv2.VideoCapture(0)  # Adjust index for your webcam

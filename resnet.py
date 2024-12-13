@@ -133,7 +133,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResNet18(nn.Module):
+class ResNet(nn.Module):
     def __init__(
         self,
         block: Type[Union[BasicBlock, Bottleneck]],
@@ -266,3 +266,15 @@ class ResNet18(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
+
+
+def resnet18():
+    return ResNet(BasicBlock, [2, 2, 2, 2])
+
+
+def resnet50():
+    return ResNet(Bottleneck, [3, 4, 6, 3])
+
+
+def resnet101_32x8d():
+    return ResNet(Bottleneck, [3, 4, 23, 3])
