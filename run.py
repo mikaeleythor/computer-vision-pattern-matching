@@ -2,25 +2,64 @@ import logging
 import cv2
 import torch
 from torchvision.models import ResNet50_Weights
-from torchvision import transforms
+from torchvision import transforms, models
 from ultralytics import YOLO
 from resnet import resnet18, resnet50, resnet101_32x8d
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import largest_similarity, imshow
 
 
+class Box:
+
+    def __init__(self, x, y, w, h):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+
+    def __lt__(self, other):
+        return self.w * self.h < other.w * other.h
+
+    def __eq__(self, other):
+        if isinstance(other, Box):
+            return (
+                self.x == other.x
+                and self.y == other.y
+                and self.w == other.w
+                and self.h == other.h
+            )
+        return False
+
+    def is_overlapping(self, other):
+        return not (
+            self.x > other.x + other.w / 2
+            or self.x + self.w / 2 < other.x
+            or self.y > other.y + other.h / 2
+            or self.y + self.h / 2 < other.y
+        )
+
+
 def extract_detections(detections, frame, transform):
     """Extract cropped frames from detections and apply transformations."""
     cropped_detections = []
+    added_boxes = []
+    detections_cp = detections[:]
     for detection in detections:
         x, y, w, h = map(int, detection["bbox"])
-        cropped_frame = frame[y : y + h, x : x + w]
-        cropped_frame_rgb = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
+        b = Box(x, y, w, h)
+        for det_cp in detections_cp:
+            xx, yy, ww, hh = map(int, det_cp["bbox"])
+            bb = Box(xx, yy, ww, hh)
+            if bb.is_overlapping(b) and bb < b and bb not in added_boxes:
+                added_boxes.append(bb)
 
-        # Apply transformations
-        image_tensor = transform(cropped_frame_rgb)
+                cropped_frame = frame[yy : yy + hh, xx : xx + ww]
+                cropped_frame_rgb = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
 
-        cropped_detections.append(image_tensor)
+                # Apply transformations
+                image_tensor = transform(cropped_frame_rgb)
+
+                cropped_detections.append(image_tensor)
 
     return cropped_detections
 
@@ -136,9 +175,13 @@ logging.basicConfig(
 
 if __name__ == "__main__":
 
-    siamese = create_siamese_network()
-    checkpoint = torch.load("models/resnet50_model_10_epoch.pth", map_location="cpu")
-    siamese.load_state_dict(process_state_dict(checkpoint))
+    # siamese = create_siamese_network()
+    # checkpoint = torch.load("models/resnet50_model_10_epoch.pth", map_location="cpu")
+    # siamese.load_state_dict(process_state_dict(checkpoint))
+
+    siamese = models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT)
+    siamese.classifier = torch.nn.Identity()
+    # checkpoint = torch.load("models/convnext_small_20_epoch.pth".pth", map_location="cpu")
     yolo = YOLO("models/test_best.pt")  # Use your trained model
 
     cap = cv2.VideoCapture(0)  # Adjust index for your webcam
@@ -181,6 +224,9 @@ if __name__ == "__main__":
             siamese.eval()
             with torch.no_grad():
                 outputs = siamese(torch.stack(cropped_detections))
+
+            # Flatten for convnext
+            outputs = outputs.view(outputs.size(0), -1)
 
             # Match patterns
             similarity_matrix = cosine_similarity(outputs)

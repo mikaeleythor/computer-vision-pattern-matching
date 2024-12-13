@@ -1,10 +1,10 @@
+import os
 import torch
 from torch import nn
 from torchvision import models, datasets, transforms
 from torch.utils.data import DataLoader
-import os
 
-DATA_DIR = "dobble/train"
+DATA_DIR = "cartoon_classification/TRAIN"
 
 # Load pretrained ResNet50 model
 # model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
@@ -29,7 +29,7 @@ transform = transforms.Compose(
 
 # Load dataset from a directory
 train_dataset = datasets.ImageFolder(root=DATA_DIR, transform=transform)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 
 # Example for transferring model to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -40,14 +40,15 @@ print(model)
 
 # Example of setting up loss and optimizer
 criterion = nn.CrossEntropyLoss()  # For multi-class classification
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # Optimizer
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)  # Optimizer
 
 # Example training loop (for 1 epoch)
-num_epochs = 6  # Set the number of epochs for training
+num_epochs = 12  # Set the number of epochs for training
 for epoch in range(num_epochs):
     model.train()  # Set the model to training mode
     running_loss = 0.0
-    for inputs, labels in train_loader:
+    for i in range(1000):
+        inputs, labels = next(iter(train_loader))
         # Move inputs and labels to the device (GPU or CPU)
         inputs, labels = inputs.to(device), labels.to(device)
 

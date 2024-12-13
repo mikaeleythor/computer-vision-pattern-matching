@@ -78,11 +78,17 @@ CLASSES = [
     "eye",
 ]
 
-# Load the model
-checkpoint = torch.load("models/resnet50_model_10_epoch.pth", map_location="cpu")
-siamese = models.resnet50(weights=checkpoint)
 num_classes = len(os.listdir(DATA_DIR))  # Automatically detect the number of classes
-siamese.fc = torch.nn.Linear(siamese.fc.in_features, num_classes)
+# Load the model
+# checkpoint = torch.load("models/resnet50_model_10_epoch.pth", map_location="cpu")
+# siamese = models.resnet50(weights=checkpoint)
+# siamese = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+# siamese.fc = torch.nn.Linear(siamese.fc.in_features, num_classes)
+
+checkpoint = torch.load("models/convnext_small_20_epoch.pth", map_location="cpu")
+siamese = models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT)
+siamese.classifier[2] = torch.nn.Linear(siamese.classifier[2].in_features, num_classes)
+
 
 # Define image transformations (resize, normalization)
 transform = transforms.Compose(
@@ -143,7 +149,6 @@ for class_idx in range(num_classes):
 
 # Compute mean Average Precision (mAP)
 mAP = np.mean(average_precisions)
-print(f"Mean Average Precision (mAP): {mAP:.4f}")
 
 # Create a confusion matrix
 conf_matrix = confusion_matrix(all_labels, all_preds)
@@ -185,7 +190,8 @@ f1 = f1_score(filtered_labels, filtered_preds, average="weighted")
 # Calculate accuracy
 accuracy = accuracy_score(filtered_labels, filtered_preds)
 
-print(f"Test Accuracy: {accuracy * 100:.2f}%")
-print(f"Precision: {precision:.4f}")
-print(f"Recall: {recall:.4f}")
+# print(f"Test Accuracy: {accuracy * 100:.2f}%")
 print(f"F1-score: {f1:.4f}")
+print(f"Recall: {recall:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"mAP: {mAP:.4f}")
