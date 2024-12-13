@@ -7,12 +7,16 @@ import os
 DATA_DIR = "dobble/train"
 
 # Load pretrained ResNet50 model
-model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+# model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+model = models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT)
 
-# Change the final fully connected layer to match the number of classes
-# Assuming the number of classes in your dataset is 5
+# Get the number of input features to the final layer (after global average pooling)
+in_features = model.classifier[2].in_features
+
+# Modify the final layer to match the number of classes in your dataset
 num_classes = len(os.listdir(DATA_DIR))  # Automatically detect the number of classes
-model.fc = nn.Linear(model.fc.in_features, num_classes)
+model.classifier[2] = nn.Linear(in_features, num_classes)
+
 
 # Define image transformations (resize, normalization)
 transform = transforms.Compose(
@@ -39,7 +43,7 @@ criterion = nn.CrossEntropyLoss()  # For multi-class classification
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # Optimizer
 
 # Example training loop (for 1 epoch)
-num_epochs = 1  # Set the number of epochs for training
+num_epochs = 6  # Set the number of epochs for training
 for epoch in range(num_epochs):
     model.train()  # Set the model to training mode
     running_loss = 0.0
