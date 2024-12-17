@@ -1,5 +1,6 @@
 import logging
 import cv2
+import os
 import torch
 from torchvision.models import ResNet50_Weights
 from torchvision import transforms, models
@@ -165,8 +166,67 @@ def get_detections(results):
 
 
 def process_state_dict(state_dict):
-    return {k: v for k, v in state_dict.items() if "fc" not in k}
+    return {k: v for k, v in state_dict.items() if "classifier" not in k}
 
+CLASSES = [
+    "Anchor",
+    "Apple",
+    "Baby bird",
+    "Baby bottle",
+    "Bomb",
+    "Cactus",
+    "Candle",
+    "Carrot",
+    "Cheese",
+    "Chess Knight",
+    "Clock",
+    "Clown",
+    "Daisy flower",
+    "Dinosaur",
+    "Dobble",
+    "Dog",
+    "Dolphin",
+    "Dragon",
+    "Exclamation point",
+    "Fire",
+    "Four leaf clover",
+    "Ghost",
+    "Green Splats",
+    "Hammer",
+    "Heart",
+    "Ice cube",
+    "Igloo",
+    "Key",
+    "Lady bug",
+    "Light bulb",
+    "Lightning",
+    "Lips",
+    "Lock",
+    "Maple leaf",
+    "Moon",
+    "No Entry Sign",
+    "Orange Scarecrow man",
+    "Pencil",
+    "Purple Cat",
+    "Question mark",
+    "Scissors",
+    "Shades",
+    "Skull",
+    "Snowflake",
+    "Snowman",
+    "Spider",
+    "Spider Web",
+    "Sun",
+    "Target",
+    "Taxi car",
+    "Tortoise",
+    "Treble clef",
+    "Tree",
+    "Water drip",
+    "Yin and Yang",
+    "Zebra",
+    "eye",
+]
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -179,9 +239,11 @@ if __name__ == "__main__":
     # checkpoint = torch.load("models/resnet50_model_10_epoch.pth", map_location="cpu")
     # siamese.load_state_dict(process_state_dict(checkpoint))
 
-    siamese = models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT)
+    siamese = models.convnext_small()
+    # siamese.classifier[2] = torch.nn.Linear(siamese.classifier[2].in_features, len(CLASSES))
     siamese.classifier = torch.nn.Identity()
-    # checkpoint = torch.load("models/convnext_small_20_epoch.pth".pth", map_location="cpu")
+    checkpoint = torch.load("models/convnext_small_12_epoch_cartoon.pth", map_location="cpu")
+    siamese.load_state_dict(process_state_dict(checkpoint))
     yolo = YOLO("models/test_best.pt")  # Use your trained model
 
     cap = cv2.VideoCapture(0)  # Adjust index for your webcam

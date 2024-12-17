@@ -13,10 +13,20 @@ from sklearn.metrics import (
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "model", type=str, help="Path to the model checkpoint"
+)
+parser.add_argument(
+    "dataset", type=str, help="Path to the dataset"
+)
 
-DATA_DIR = "data/dobble/test"
-CONFIDENCE_THRESHOLD = 0.3
+args = parser.parse_args()
+
+DATA_DIR = args.dataset
+CONFIDENCE_THRESHOLD = 0.7
 
 CLASSES = [
     "Anchor",
@@ -85,7 +95,7 @@ num_classes = len(os.listdir(DATA_DIR))  # Automatically detect the number of cl
 # siamese = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
 # siamese.fc = torch.nn.Linear(siamese.fc.in_features, num_classes)
 
-checkpoint = torch.load("models/convnext_small_20_epoch.pth", map_location="cpu")
+checkpoint = torch.load(args.model, map_location="cpu")
 siamese = models.convnext_small(weights=models.ConvNeXt_Small_Weights.DEFAULT)
 siamese.classifier[2] = torch.nn.Linear(siamese.classifier[2].in_features, num_classes)
 
